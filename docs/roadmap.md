@@ -49,14 +49,19 @@ A phased plan. Each phase produces something runnable and testable before moving
 ## Phase 5 — Advanced
 **Goal:** improve signal quality without fooling yourself.
 
-- [ ] Hyperparameter tuning with **purged, embargoed** time-series CV.
+- [x] Walk-forward model comparison (`models/evaluate.py`) — rank LR/RF/GBM/XGB/LGBM
+      on the same OOS predictions by AUC, Brier, and backtest Sharpe.
+- [x] Hyperparameter tuning with **purged, embargoed** time-series CV
+      (`models/tuning.py`).
+- [x] Probability calibration with time-series-safe CV + Brier score / reliability
+      table (`models/calibration.py`).
+- [x] Multi-asset equal-weight portfolio backtest (`backtesting/portfolio.py`).
 - [ ] Feature selection / importance stability analysis.
-- [ ] Probability calibration (`CalibratedClassifierCV`).
 - [ ] Ensembling and regime awareness (volatility regimes, trend filters).
-- [ ] Position sizing by confidence / volatility targeting.
+- [ ] Position sizing by confidence / volatility targeting (calibrated probs make
+      this honest now).
 - [ ] Optional sequence model (LSTM/Temporal CNN) **only** if it beats the tree
       baseline on walk-forward — never as the default.
-- [ ] Multi-asset portfolio backtest.
 
 ## Definition of done (project-level)
 A reviewer can clone the repo, run one command, and reproduce: a trained model, an

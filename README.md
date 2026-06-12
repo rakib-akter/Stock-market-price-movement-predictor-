@@ -142,7 +142,7 @@ streamlit run frontend/streamlit_app.py
 | **2** | Baseline ML models (LR → RF → GBM → XGB/LGBM) | scaffolded |
 | **3** | Walk-forward backtester with costs & slippage | scaffolded |
 | **4** | Streamlit dashboard | scaffolded |
-| **5** | Advanced models, tuning, ensembles, risk targeting | planned |
+| **5** | Advanced: model comparison, purged-CV tuning, calibration, portfolio backtest | in progress |
 
 Full breakdown in [`docs/roadmap.md`](docs/roadmap.md).
 
