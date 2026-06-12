@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 
 from backend.app.data.clean import clean_ohlcv
 from backend.app.data.splits import time_train_test_split, walk_forward_folds

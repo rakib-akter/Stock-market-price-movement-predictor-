@@ -49,9 +49,13 @@ def test_engine_acts_on_next_bar_not_current(ohlcv):
     result = backtest_signals(prices, prob, BacktestConfig())
     # The first position is forced flat (no prior signal to act on).
     assert result.positions.iloc[0] == 0.0
-    # positions are the signal shifted by one bar.
-    expected = (prob >= 0.0).astype(float).shift(1).fillna(0.0)
-    # long/flat maps prob>=threshold(0) → 1, so all become 1 then shifted.
+    # Position at bar t equals the target signal from bar t-1 (one-bar shift).
+    # Long/flat maps edge=(prob-0.5)*2 >= threshold(0), i.e. prob >= 0.5 → long.
+    target = (prob >= 0.5).astype(float)
+    expected = target.shift(1).fillna(0.0)
+    pd.testing.assert_series_equal(
+        result.positions, expected, check_names=False
+    )
 
 
 def test_costs_reduce_returns(ohlcv):

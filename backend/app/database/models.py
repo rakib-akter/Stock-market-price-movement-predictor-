@@ -41,7 +41,7 @@ class Stock(Base):
     sector: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=_utcnow)
 
-    prices: Mapped[list["PriceData"]] = relationship(
+    prices: Mapped[list[PriceData]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
     )
 
@@ -92,10 +92,10 @@ class ModelRun(Base):
     artifact_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=_utcnow)
 
-    predictions: Mapped[list["Prediction"]] = relationship(
+    predictions: Mapped[list[Prediction]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
     )
-    backtests: Mapped[list["BacktestResult"]] = relationship(
+    backtests: Mapped[list[BacktestResult]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
     )
 
