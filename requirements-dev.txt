@@ -1,0 +1,14 @@
+-r requirements.txt
+
+# ---- Testing ----
+pytest>=8.1
+pytest-cov>=5.0
+
+# ---- Linting / formatting / typing ----
+ruff>=0.4
+black>=24.3
+mypy>=1.9
+
+# ---- Notebooks ----
+jupyterlab>=4.1
+ipykernel>=6.29

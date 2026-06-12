@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quant-movement-predictor"
+version = "0.1.0"
+description = "A research/backtesting platform that predicts short-term stock price movement using ML and quantitative features."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Rakib Akter" }]
+keywords = ["quant", "machine-learning", "backtesting", "finance", "trading-research"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["backend*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["notebooks", "data", "artifacts"]
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes, I: isort, B: bugbear, UP: pyupgrade
+select = ["E", "W", "F", "I", "B", "UP"]
+ignore = ["E501"]  # line length handled by formatter
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = true
+no_implicit_optional = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --cov=backend --cov-report=term-missing"
+filterwarnings = ["ignore::DeprecationWarning"]
