@@ -118,3 +118,39 @@ def backtest_for(
         n_splits=n_splits,
         config=config,
     )
+
+
+def compare_models_for(
+    ticker: str,
+    model_names: list[str] | None = None,
+    horizon: int | None = None,
+    n_splits: int = 5,
+) -> pd.DataFrame:
+    """Compare several models on one ticker via walk-forward OOS metrics."""
+    from backend.app.models.evaluate import compare_models
+
+    bundle = build_features_for(ticker, horizon=horizon)
+    return compare_models(
+        bundle.matrix,
+        model_names=model_names,
+        horizon=bundle.horizon,
+        n_splits=n_splits,
+    )
+
+
+def portfolio_backtest_for(
+    tickers: list[str],
+    model_name: str = "logistic",
+    horizon: int | None = None,
+    n_splits: int = 5,
+):
+    """Run an equal-weight portfolio backtest across several tickers."""
+    from backend.app.backtesting.portfolio import portfolio_backtest
+
+    matrices = {
+        t: build_features_for(t, horizon=horizon).matrix for t in tickers
+    }
+    return portfolio_backtest(
+        matrices, model_name=model_name, horizon=horizon or settings.prediction_horizon_days,
+        n_splits=n_splits,
+    )
