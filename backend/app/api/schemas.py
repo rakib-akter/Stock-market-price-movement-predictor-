@@ -71,3 +71,23 @@ class BacktestResponse(BaseModel):
 class MetricsResponse(BaseModel):
     ticker: str
     latest_run: dict | None = None
+
+
+class CompareModelsResponse(BaseModel):
+    ticker: str
+    horizon: int
+    leaderboard: list[dict]  # one row per model, best first
+
+
+class PortfolioBacktestRequest(BaseModel):
+    tickers: list[str] = Field(..., examples=[["AAPL", "MSFT", "NVDA"]])
+    model_name: str = "logistic"
+    horizon: int = Field(1, ge=1, le=21)
+    n_splits: int = Field(5, ge=2, le=20)
+
+
+class PortfolioBacktestResponse(BaseModel):
+    tickers: list[str]
+    metrics: dict
+    equity_curve: dict
+    benchmark_curve: dict
