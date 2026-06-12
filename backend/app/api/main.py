@@ -14,7 +14,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.api.routes import backtest, data, models, predict, tickers
+from backend.app.api.routes import analysis, backtest, data, models, predict, tickers
 from backend.app.config import settings
 from backend.app.database.db import init_db
 from backend.app.utils.logging import get_logger
@@ -53,6 +53,7 @@ app.include_router(data.router)
 app.include_router(models.router)
 app.include_router(predict.router)
 app.include_router(backtest.router)
+app.include_router(analysis.router)
 
 
 @app.get("/", tags=["meta"])
