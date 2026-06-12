@@ -40,9 +40,11 @@ def make_labels(df: pd.DataFrame, horizon: int = 1) -> pd.DataFrame:
     out[f"y_dir_{horizon}"] = (fwd_ret > 0).astype("Int64")
 
     daily_ret = price.pct_change()
-    # Forward realized vol: std of returns over the *next* h bars.
+    # Forward realized vol: std of returns over the *next* h bars. A window of at
+    # least 2 is required for std to be defined (rolling(1).std() is always NaN).
+    vol_window = max(horizon, 2)
     out[f"y_fwd_vol_{horizon}"] = (
-        daily_ret.shift(-horizon).rolling(horizon).std()
+        daily_ret.shift(-horizon).rolling(vol_window).std()
     )
     return out
 
