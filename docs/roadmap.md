@@ -56,10 +56,12 @@ A phased plan. Each phase produces something runnable and testable before moving
 - [x] Probability calibration with time-series-safe CV + Brier score / reliability
       table (`models/calibration.py`).
 - [x] Multi-asset equal-weight portfolio backtest (`backtesting/portfolio.py`).
-- [ ] Feature selection / importance stability analysis.
+- [x] Feature-importance **stability** analysis across walk-forward folds
+      (`models/feature_selection.py`) + `/feature-stability` endpoint.
+- [x] Position sizing by **confidence** and **volatility targeting**
+      (`BacktestConfig.sizing`); calibrated probabilities make confidence honest.
+- [x] Calibration wired into the training path and dashboard (toggle + Brier).
 - [ ] Ensembling and regime awareness (volatility regimes, trend filters).
-- [ ] Position sizing by confidence / volatility targeting (calibrated probs make
-      this honest now).
 - [ ] Optional sequence model (LSTM/Temporal CNN) **only** if it beats the tree
       baseline on walk-forward — never as the default.
 
