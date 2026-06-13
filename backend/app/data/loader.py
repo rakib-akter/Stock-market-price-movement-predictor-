@@ -10,7 +10,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from backend.app.config import settings
 from backend.app.data.clean import clean_ohlcv
+from backend.app.data.demo import generate_demo_ohlcv
 from backend.app.data.fetch import fetch_ohlcv
 from backend.app.utils.logging import get_logger
 
@@ -30,19 +32,39 @@ def load_price_panel(
     interval: str = "1d",
     use_cache: bool = True,
     refresh: bool = False,
+    demo: bool | None = None,
 ) -> pd.DataFrame:
-    """Return a cleaned OHLCV frame for ``ticker``, using a local cache.
+    """Return a cleaned OHLCV frame for ``ticker``.
 
-    Set ``refresh=True`` to bypass and overwrite the cache.
+    Parameters
+    ----------
+    demo:
+        Force demo (synthetic) data on/off. If ``None``, uses ``settings.demo_mode``.
+        Demo mode lets the whole product run offline with no API keys.
+    refresh:
+        Bypass and overwrite the on-disk cache (ignored in demo mode).
     """
-    path = _cache_path(ticker, interval)
+    use_demo = settings.demo_mode if demo is None else demo
 
+    if use_demo:
+        logger.info("DEMO MODE — generating synthetic data for %s", ticker)
+        return clean_ohlcv(generate_demo_ohlcv(ticker, start=start, end=end))
+
+    path = _cache_path(ticker, interval)
     if use_cache and not refresh and path.exists():
         logger.info("Loading %s from cache %s", ticker, path)
         cached = pd.read_parquet(path)
         return clean_ohlcv(cached)
 
-    raw = fetch_ohlcv(ticker, start=start, end=end, interval=interval)
+    try:
+        raw = fetch_ohlcv(ticker, start=start, end=end, interval=interval)
+    except Exception as exc:  # noqa: BLE001
+        if settings.demo_fallback:
+            logger.warning(
+                "Live fetch for %s failed (%s); falling back to DEMO data.", ticker, exc
+            )
+            return clean_ohlcv(generate_demo_ohlcv(ticker, start=start, end=end))
+        raise
 
     if use_cache:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)

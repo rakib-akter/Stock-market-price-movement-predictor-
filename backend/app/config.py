@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     data_start_date: str = "2015-01-01"
     data_interval: str = "1d"
 
+    # ---- Demo mode ----
+    # When True, the app uses deterministic *synthetic* data instead of live
+    # yfinance downloads, so the whole product runs offline with no API keys.
+    demo_mode: bool = True
+    # When True (and not in demo mode), fall back to demo data if a live fetch
+    # fails — so the product never hard-crashes for a user without internet.
+    demo_fallback: bool = True
+
     # ---- Modeling ----
     prediction_horizon_days: int = 1
     test_size: float = 0.2
