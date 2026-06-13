@@ -30,14 +30,25 @@ class TrainRequest(BaseModel):
     ticker: str = Field(..., examples=["AAPL"])
     model_name: str = Field("logistic", examples=["logistic", "random_forest", "xgboost"])
     horizon: int = Field(1, ge=1, le=21)
+    calibrate: bool = Field(
+        False, description="Fit time-series-safe probability calibration."
+    )
 
 
 class TrainResponse(BaseModel):
     ticker: str
     model_name: str
     horizon: int
+    calibrated: bool = False
     metrics: dict
     artifact_path: str | None = None
+
+
+class FeatureStabilityResponse(BaseModel):
+    ticker: str
+    horizon: int
+    model_name: str
+    features: list[dict]  # one row per feature, most stable first
 
 
 class PredictResponse(BaseModel):
