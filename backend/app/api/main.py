@@ -68,4 +68,10 @@ def root() -> dict:
 
 @app.get("/health", tags=["meta"])
 def health() -> dict:
-    return {"status": "ok", "database_url": settings.database_url.split("://")[0]}
+    return {
+        "status": "ok",
+        "database_url": settings.database_url.split("://")[0],
+        "demo_mode": settings.demo_mode,
+        "default_tickers": settings.default_tickers,
+        "models": ["logistic", "random_forest", "gradient_boosting", "xgboost", "lightgbm"],
+    }
