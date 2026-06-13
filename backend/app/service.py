@@ -66,15 +66,37 @@ def train_and_save(
     model_name: str = "logistic",
     horizon: int | None = None,
     start: str | None = None,
+    calibrate: bool = False,
 ) -> TrainResult:
     """Build features, train a classifier, persist the artifact, return results."""
     bundle = build_features_for(ticker, horizon=horizon, start=start)
     result = train_classifier(
-        bundle.matrix, ticker=ticker, model_name=model_name, horizon=bundle.horizon
+        bundle.matrix,
+        ticker=ticker,
+        model_name=model_name,
+        horizon=bundle.horizon,
+        calibrate=calibrate,
     )
     path = save_model(result.artifact)
     logger.info("Saved model artifact → %s", path)
     return result
+
+
+def feature_stability_for(
+    ticker: str,
+    model_name: str = "random_forest",
+    horizon: int | None = None,
+    n_splits: int = 5,
+    top_k: int = 20,
+) -> pd.DataFrame:
+    """Walk-forward feature-importance stability table for one ticker (top_k rows)."""
+    from backend.app.models.feature_selection import importance_stability
+
+    bundle = build_features_for(ticker, horizon=horizon)
+    table = importance_stability(
+        bundle.matrix, model_name=model_name, horizon=bundle.horizon, n_splits=n_splits
+    )
+    return table.head(top_k)
 
 
 def load_or_train(
