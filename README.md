@@ -97,7 +97,9 @@ See [`docs/architecture.md`](docs/architecture.md) for the full design.
 │       ├── api/                 # FastAPI app + routes + schemas
 │       ├── database/            # SQLAlchemy engine, ORM models, CRUD
 │       └── utils/               # logging, time helpers
-├── frontend/                    # Streamlit dashboard
+├── frontend/
+│   ├── web/                     # React + TypeScript SPA (Vite) — primary UI
+│   └── streamlit_app.py         # legacy single-file Streamlit dashboard
 ├── notebooks/                   # exploratory research
 ├── scripts/                     # CLI entry points (end-to-end pipeline)
 ├── tests/                       # pytest suite
@@ -110,26 +112,36 @@ Each folder is explained in [`docs/architecture.md`](docs/architecture.md).
 
 ## 4. Quickstart
 
+The app ships with **demo mode on by default** (deterministic *synthetic* data), so
+it runs end-to-end with **no internet and no API keys**. Set `DEMO_MODE=false` in
+`.env` to use live yfinance data.
+
+### Web app (React SPA + API) — recommended
+
 ```bash
-# 1. Create environment
+# Terminal 1 — backend API (repo root)
 python -m venv .venv
-# Windows:  .venv\Scripts\activate
-# Unix:     source .venv/bin/activate
+# Windows:  .venv\Scripts\activate   |   Unix: source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn backend.app.api.main:app --reload      # http://localhost:8000/docs
 
-# 2. Install
+# Terminal 2 — React frontend
+cd frontend/web
+npm install            # add --use-system-ca on corporate TLS networks
+npm run dev            # http://localhost:5173
+```
+
+The React dashboard has tabs for **Overview** (price + indicators), **Prediction**,
+**Backtest** (walk-forward equity curve vs. buy-and-hold), **Portfolio**, and
+**Features** (importance stability). A header badge shows DEMO vs. LIVE data.
+
+### CLI / Streamlit (alternative)
+
+```bash
 pip install -r requirements-dev.txt
-
-# 3. Configure
 cp .env.example .env
-
-# 4. Run the full pipeline for one ticker (fetch → features → train → backtest)
-python -m scripts.run_pipeline --ticker AAPL
-
-# 5. Start the API
-uvicorn backend.app.api.main:app --reload
-
-# 6. Start the dashboard (in a second terminal)
-streamlit run frontend/streamlit_app.py
+python -m scripts.run_pipeline --ticker AAPL   # fetch → features → train → backtest
+streamlit run frontend/streamlit_app.py        # legacy single-file dashboard
 ```
 
 ---
@@ -141,7 +153,7 @@ streamlit run frontend/streamlit_app.py
 | **1** | Data fetching + feature engineering | scaffolded |
 | **2** | Baseline ML models (LR → RF → GBM → XGB/LGBM) | scaffolded |
 | **3** | Walk-forward backtester with costs & slippage | scaffolded |
-| **4** | Streamlit dashboard | scaffolded |
+| **4** | Dashboards: React SPA (primary) + Streamlit; offline demo mode | done |
 | **5** | Advanced: model comparison, purged-CV tuning, calibration, portfolio backtest | in progress |
 
 Full breakdown in [`docs/roadmap.md`](docs/roadmap.md).
