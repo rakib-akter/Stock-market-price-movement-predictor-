@@ -26,7 +26,7 @@ import streamlit as st
 from backend.app.backtesting.engine import BacktestConfig
 from backend.app.backtesting.walkforward import walk_forward_backtest
 from backend.app.config import settings
-from backend.app.features.pipeline import feature_columns, split_X_y
+from backend.app.features.pipeline import feature_columns
 from backend.app.models.registry import available_models
 from backend.app.models.train import train_classifier
 from backend.app.service import build_features_for
@@ -43,21 +43,27 @@ def _features(ticker: str, horizon: int) -> pd.DataFrame:
 
 
 @st.cache_data(show_spinner="Training model…", ttl=3600)
-def _train(ticker: str, model_name: str, horizon: int) -> dict:
+def _train(ticker: str, model_name: str, horizon: int, calibrate: bool) -> dict:
     matrix = _features(ticker, horizon)
-    result = train_classifier(matrix, ticker=ticker, model_name=model_name, horizon=horizon)
-    # Return picklable pieces for caching.
-    importances = _feature_importance(result.artifact.estimator, feature_columns(matrix))
-    return {"metrics": result.metrics, "importances": importances}
+    result = train_classifier(
+        matrix, ticker=ticker, model_name=model_name, horizon=horizon, calibrate=calibrate
+    )
+    # Feature importance comes from an uncalibrated fit (calibration wrappers hide
+    # coef_/feature_importances_), so train a plain one just for the chart.
+    plain = train_classifier(matrix, ticker=ticker, model_name=model_name, horizon=horizon)
+    importances = _feature_importance(plain.artifact.estimator, feature_columns(matrix))
+    return {"metrics": result.metrics, "importances": importances, "calibrated": calibrate}
 
 
 @st.cache_data(show_spinner="Running walk-forward backtest…", ttl=3600)
 def _backtest(ticker: str, model_name: str, horizon: int, n_splits: int,
-              allow_short: bool, threshold: float) -> dict:
+              allow_short: bool, threshold: float, sizing: str) -> dict:
     matrix = _features(ticker, horizon)
     bt = walk_forward_backtest(
         matrix, model_name=model_name, horizon=horizon, n_splits=n_splits,
-        config=BacktestConfig(allow_short=allow_short, confidence_threshold=threshold),
+        config=BacktestConfig(
+            allow_short=allow_short, confidence_threshold=threshold, sizing=sizing
+        ),
     )
     return {
         "metrics": bt.metrics,
@@ -95,6 +101,14 @@ horizon = st.sidebar.slider("Prediction horizon (days)", 1, 21, 1)
 n_splits = st.sidebar.slider("Walk-forward folds", 2, 12, 5)
 allow_short = st.sidebar.checkbox("Allow short positions", value=False)
 threshold = st.sidebar.slider("Confidence threshold", 0.0, 0.9, 0.0, 0.05)
+sizing = st.sidebar.selectbox(
+    "Position sizing", ["binary", "confidence", "vol_target"], index=0,
+    help="binary: full position · confidence: scale by |edge| · vol_target: target annual vol",
+)
+calibrate = st.sidebar.checkbox(
+    "Calibrate probabilities", value=False,
+    help="Time-series-safe calibration so the confidence score is a real probability.",
+)
 
 st.sidebar.markdown("---")
 st.sidebar.warning("Research tool — not financial advice. See docs/warnings.md.")
@@ -139,23 +153,27 @@ st.plotly_chart(fig, use_container_width=True)
 # --------------------------------------------------------------------------- #
 # Prediction + training metrics
 # --------------------------------------------------------------------------- #
-train_out = _train(ticker, model_name, horizon)
+train_out = _train(ticker, model_name, horizon, calibrate)
 metrics = train_out["metrics"]
+if calibrate:
+    st.caption("✅ Probabilities calibrated (time-series-safe). Confidence ≈ real probability.")
 
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 col1.metric("Hold-out accuracy", f"{metrics['accuracy']:.1%}",
             f"{metrics['accuracy'] - metrics['baseline_accuracy']:+.1%} vs baseline")
 col2.metric("ROC-AUC", f"{metrics.get('roc_auc', float('nan')):.3f}")
-col3.metric("Precision", f"{metrics['precision']:.1%}")
-col4.metric("Test samples", f"{metrics['n_test']}")
+col3.metric("Brier", f"{metrics.get('brier', float('nan')):.3f}")
+col4.metric("Precision", f"{metrics['precision']:.1%}")
+col5.metric("Test samples", f"{metrics['n_test']}")
 
 
 # --------------------------------------------------------------------------- #
 # Backtest
 # --------------------------------------------------------------------------- #
 st.subheader("Walk-forward backtest vs. buy-and-hold")
-bt = _backtest(ticker, model_name, horizon, n_splits, allow_short, threshold)
+bt = _backtest(ticker, model_name, horizon, n_splits, allow_short, threshold, sizing)
 m = bt["metrics"]
+st.caption(f"Sizing: **{sizing}** · avg exposure {m.get('avg_exposure', 0):.2f}")
 
 c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Total return", f"{m['total_return']:.1%}",
