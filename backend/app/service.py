@@ -41,17 +41,18 @@ def build_features_for(
     start: str | None = None,
     end: str | None = None,
     with_benchmarks: bool = True,
+    demo: bool | None = None,
 ) -> FeatureBundle:
     """Fetch, clean, and engineer the feature matrix for one ticker."""
     horizon = horizon or settings.prediction_horizon_days
-    prices = load_price_panel(ticker, start=start, end=end)
+    prices = load_price_panel(ticker, start=start, end=end, demo=demo)
 
     benchmarks: dict[str, pd.DataFrame] | None = None
     if with_benchmarks:
         benchmarks = {}
         for sym in settings.market_benchmarks:
             try:
-                benchmarks[sym] = load_price_panel(sym, start=start, end=end)
+                benchmarks[sym] = load_price_panel(sym, start=start, end=end, demo=demo)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Benchmark %s unavailable: %s", sym, exc)
         benchmarks = benchmarks or None
@@ -80,6 +81,54 @@ def train_and_save(
     path = save_model(result.artifact)
     logger.info("Saved model artifact → %s", path)
     return result
+
+
+def price_history_for(
+    ticker: str,
+    horizon: int | None = None,
+    lookback: int = 250,
+    demo: bool | None = None,
+) -> dict:
+    """Return recent price + indicator series and the latest prediction.
+
+    Powers the frontend Overview chart in a single call.
+    """
+    bundle = build_features_for(ticker, horizon=horizon, demo=demo)
+    matrix = bundle.matrix.tail(lookback)
+
+    cols = [
+        ("date", None),
+        ("close", "adj_close"),
+        ("sma_20", "sma_20"),
+        ("sma_50", "sma_50"),
+        ("bb_upper", "bb_upper_20"),
+        ("bb_lower", "bb_lower_20"),
+        ("rsi_14", "rsi_14"),
+        ("volume", "volume"),
+    ]
+    points: list[dict] = []
+    for idx, row in matrix.iterrows():
+        point = {"date": str(idx.date() if hasattr(idx, "date") else idx)}
+        for out_key, src in cols[1:]:
+            if src in matrix.columns:
+                val = row[src]
+                point[out_key] = None if pd.isna(val) else round(float(val), 4)
+        points.append(point)
+
+    # predict_for trains on demand (honoring global demo_mode) and is best-effort
+    # here — the chart should still render even if the model can't be built.
+    try:
+        prediction = predict_for(ticker, model_name="logistic", horizon=bundle.horizon)
+    except Exception:  # noqa: BLE001
+        prediction = None
+
+    return {
+        "ticker": bundle.ticker,
+        "horizon": bundle.horizon,
+        "demo": settings.demo_mode if demo is None else demo,
+        "points": points,
+        "prediction": prediction,
+    }
 
 
 def feature_stability_for(

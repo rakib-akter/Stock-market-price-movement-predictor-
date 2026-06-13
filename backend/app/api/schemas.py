@@ -51,6 +51,14 @@ class FeatureStabilityResponse(BaseModel):
     features: list[dict]  # one row per feature, most stable first
 
 
+class PriceHistoryResponse(BaseModel):
+    ticker: str
+    horizon: int
+    demo: bool
+    points: list[dict]          # [{date, close, sma_20, sma_50, bb_upper, bb_lower, ...}]
+    prediction: dict | None = None
+
+
 class PredictResponse(BaseModel):
     ticker: str
     date: str

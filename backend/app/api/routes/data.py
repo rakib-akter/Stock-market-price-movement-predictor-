@@ -1,15 +1,34 @@
-"""`/fetch-data` — download, clean, and persist OHLCV for a ticker."""
+"""`/fetch-data` and `/price-history` — OHLCV ingestion and chart series."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
-from backend.app.api.schemas import FetchDataRequest, FetchDataResponse
+from backend.app.api.schemas import (
+    FetchDataRequest,
+    FetchDataResponse,
+    PriceHistoryResponse,
+)
 from backend.app.data.loader import load_price_panel
 from backend.app.database.crud import upsert_price_data
 from backend.app.database.db import get_session
+from backend.app.service import price_history_for
 
 router = APIRouter(tags=["data"])
+
+
+@router.get("/price-history/{ticker}", response_model=PriceHistoryResponse)
+def price_history(
+    ticker: str,
+    horizon: int = Query(1, ge=1, le=21),
+    lookback: int = Query(250, ge=20, le=2000),
+) -> PriceHistoryResponse:
+    """Recent price + indicator series and the latest prediction, for charting."""
+    try:
+        data = price_history_for(ticker, horizon=horizon, lookback=lookback)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"Price history failed: {exc}") from exc
+    return PriceHistoryResponse(**data)
 
 
 @router.post("/fetch-data", response_model=FetchDataResponse)
