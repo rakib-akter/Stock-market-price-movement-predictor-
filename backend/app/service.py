@@ -176,11 +176,14 @@ def backtest_for(
     n_splits: int = 5,
     allow_short: bool = False,
     confidence_threshold: float = 0.0,
+    sizing: str = "binary",
 ) -> BacktestResult:
     """Run a walk-forward backtest for one ticker end-to-end."""
     bundle = build_features_for(ticker, horizon=horizon)
     config = BacktestConfig(
-        allow_short=allow_short, confidence_threshold=confidence_threshold
+        allow_short=allow_short,
+        confidence_threshold=confidence_threshold,
+        sizing=sizing,
     )
     return walk_forward_backtest(
         bundle.matrix,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -77,6 +79,7 @@ class BacktestRequest(BaseModel):
     n_splits: int = Field(5, ge=2, le=20)
     allow_short: bool = False
     confidence_threshold: float = Field(0.0, ge=0.0, le=1.0)
+    sizing: Literal["binary", "confidence", "vol_target"] = "binary"
 
 
 class BacktestResponse(BaseModel):

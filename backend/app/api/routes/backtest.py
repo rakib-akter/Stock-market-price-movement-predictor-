@@ -27,6 +27,7 @@ def run_backtest(req: BacktestRequest) -> BacktestResponse:
             n_splits=req.n_splits,
             allow_short=req.allow_short,
             confidence_threshold=req.confidence_threshold,
+            sizing=req.sizing,
         )
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=f"Backtest failed: {exc}") from exc
