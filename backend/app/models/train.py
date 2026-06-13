@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
+    brier_score_loss,
     f1_score,
     precision_score,
     recall_score,
@@ -55,6 +56,9 @@ def _classification_metrics(y_true: pd.Series, y_pred, proba) -> dict:
     # ROC-AUC needs both classes present and probability scores.
     if proba is not None and len(np.unique(y_true)) == 2:
         metrics["roc_auc"] = float(roc_auc_score(y_true, proba))
+    # Brier score measures probability quality (0 best, 0.25 = no-skill 50/50).
+    if proba is not None:
+        metrics["brier"] = float(brier_score_loss(y_true, proba))
     return metrics
 
 
@@ -64,6 +68,8 @@ def train_classifier(
     model_name: str = "logistic",
     horizon: int = 1,
     test_size: float | None = None,
+    calibrate: bool = False,
+    calibration_method: str = "isotonic",
 ) -> TrainResult:
     """Train a direction classifier on a built feature matrix.
 
@@ -77,6 +83,12 @@ def train_classifier(
         Registry name (``logistic``, ``random_forest``, …).
     horizon:
         Label horizon; selects target column ``y_dir_{horizon}``.
+    calibrate:
+        If ``True``, fit a probability-calibrated estimator using a
+        time-series-safe inner CV so ``predict_proba`` (and the dashboard's
+        confidence score) reflects a real probability rather than a raw score.
+    calibration_method:
+        ``"isotonic"`` (flexible) or ``"sigmoid"`` (Platt; robust on small data).
     """
     target = f"y_dir_{horizon}"
     test_size = settings.test_size if test_size is None else test_size
@@ -87,12 +99,20 @@ def train_classifier(
     y_train, y_test = y_train.astype(int), y_test.astype(int)
 
     logger.info(
-        "Training %s on %s | train=%d test=%d features=%d",
-        model_name, ticker, len(X_train), len(X_test), X_train.shape[1],
+        "Training %s on %s | train=%d test=%d features=%d calibrated=%s",
+        model_name, ticker, len(X_train), len(X_test), X_train.shape[1], calibrate,
     )
 
-    estimator = build_estimator(model_name)
-    estimator.fit(X_train, y_train)
+    if calibrate:
+        # Import here to avoid pulling calibration deps when not needed.
+        from backend.app.models.calibration import calibrate_estimator
+
+        estimator = calibrate_estimator(
+            model_name, X_train, y_train, method=calibration_method
+        )
+    else:
+        estimator = build_estimator(model_name)
+        estimator.fit(X_train, y_train)
 
     y_pred = estimator.predict(X_test)
     proba = (
@@ -116,6 +136,7 @@ def train_classifier(
         feature_names=feature_columns(matrix),
         ticker=ticker.upper(),
         metrics=metrics,
+        calibrated=calibrate,
     )
 
     return TrainResult(

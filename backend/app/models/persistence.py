@@ -27,6 +27,7 @@ class ModelArtifact:
     ticker: str
     trained_at: str = field(default_factory=lambda: dt.datetime.utcnow().isoformat())
     metrics: dict = field(default_factory=dict)
+    calibrated: bool = False  # True if predict_proba returns calibrated probabilities
 
     def metadata(self) -> dict:
         """Serializable metadata (excludes the estimator object)."""
